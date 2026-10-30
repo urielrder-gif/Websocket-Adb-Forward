@@ -1,2 +1,42 @@
-- name: automated-build-android-app-with-github-action
-  uses: amirisback/automated-build-android-app-with-github-action@2.2.7
+name: Build and Save Local APK (Modern SDK)
+
+on:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  Gradle:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout code
+        uses: actions/checkout@v4
+
+      - name: setup jdk
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '11'
+
+      - name: Force Modern Android SDK Versions
+        run: |
+          # Reemplaza minSdkVersion a 21 (Android 5.0) para garantizar compatibilidad con librerías actuales
+          sed -i 's/minSdkVersion.*/minSdkVersion 21/g' websocket-server/build.gradle
+          
+          # Reemplaza targetSdkVersion a 34 (Android 14) para que los sistemas modernos no la bloqueen
+          sed -i 's/targetSdkVersion.*/targetSdkVersion 34/g' websocket-server/build.gradle
+          
+          echo "Versiones de SDK actualizadas dinámicamente para la compilación."
+
+      - name: Make Gradle executable
+        run: chmod +x ./gradlew
+
+      - name: Build Release APK
+        run: ./gradlew assembleRelease
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: websocket-server-modern-apk
+          path: websocket-server/build/outputs/apk/release
+          /*.apk
